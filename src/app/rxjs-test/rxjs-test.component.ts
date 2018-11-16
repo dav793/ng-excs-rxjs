@@ -12,8 +12,9 @@ import {
 } from "rxjs";
 
 import {
-  catchError, concatMap,
+  catchError,
   delay,
+  exhaustMap,
   filter,
   map,
   sampleTime,
@@ -28,17 +29,17 @@ import {
  *  - (ex3) Cree un observable con manejo de errores y de finalizacion
  *  - (ex4) Cree un observable que emita los numeros pares >= 10 y < 20, cada 250ms
  *  - (ex5) Cree un observable identico al del ex3, pero haciendo uso de pipe y composición de operadores
- *  - (ex6)
+ *  - (ex6) Cree un observable que continue normalmente luego de un error
  *  - (ex7) Cree un observable que emita numeros en intervalos de 250ms, y desechelo apropiadamente al destruír el componente
  *  - (ex8) Cree un hot stream que sea emisible desde cualquier parte del programa
  *  - (ex9) Cree un stream igual al anterior, pero que además emita el último valor cuando es suscrito, o un valor por defecto
  *  - (ex10) Cree un stream igual al anterior, pero que emita los últimos 2 valores cuando es suscrito
  *  - (ex11) Cree un observable a partir de un subject, para que no pueda ser emitido por quien lo tenga
  *  - (ex12) Cree un observable cuyo observer sea un subject (técnica conocida como multicasting)
- *  - (ex13) Cree un cold, short-lived stream a partir de un evento del dom, por ejempo hacer click de un botón
- *  - (ex14) Cree un hot, long-lived stream a partir de un evento del dom, por ejempo mover el mouse (limite las emisiones a cada 500ms)
- *  - (ex15) Cree un observable que emita hasta que varios observables hayan terminado
- *  - (ex99) Cree un observable que continue normalmente luego de un error
+ *  - (ex13) Cree un hot, long-lived stream a partir de un evento del dom, por ejempo hacer click de un botón
+ *  - (ex14) Cree un hot, long-lived stream a partir de otro evento del dom, por ejempo mover el mouse (limite las emisiones a cada 500ms)
+ *  - (ex15) Cree un observable que emita hasta que después de que varios observables hayan terminado
+ *  - (ex16) Haga que los clicks a un botón ocasionen requests a un servidor, pero sólo uno a la vez
  *
  *  Observable streams
  *    Son colecciones "lazy-push" de múltiples valores. Llenan un lugar anteriormente faltante en la siguiente tabla:
@@ -81,6 +82,9 @@ import {
  *
  * Artículo "The Introduction to Reactive Programming you've been missing" (altamente recomendado) :
  *    https://gist.github.com/staltz/868e7e9bc2a7b8c1f754
+ *
+ * Artículo "A Super Ninja Trick To Learn RxJS’s “switchMap”, “mergeMap”, “concatMap” and “exhaustMap”, FOREVER!":
+ *    https://medium.com/@shairez/a-super-ninja-trick-to-learn-rxjss-switchmap-mergemap-concatmap-and-exhaustmap-forever-88e178a75f1b
  */
 
 @Component({
@@ -93,6 +97,7 @@ export class RxjsTestComponent implements OnInit, OnDestroy {
   subs = [];
 
   clickObs;
+  wait = false;
 
   constructor() {
 
@@ -111,6 +116,7 @@ export class RxjsTestComponent implements OnInit, OnDestroy {
     // this.runExample13();
     // this.runExample14();
     this.runExample15();
+    // this.runExample16();
 
   }
 
@@ -154,7 +160,7 @@ export class RxjsTestComponent implements OnInit, OnDestroy {
 
     let obs = new Observable((observer) => {
 
-      arr1.forEach(a => {
+      arr2.forEach(a => {
         if (typeof a !== 'number')
           observer.error(' is not a number!');
         else
@@ -190,7 +196,7 @@ export class RxjsTestComponent implements OnInit, OnDestroy {
     let arr1 = [1, 2, '$', 4];  // <- este produce un error y detiene la ejecucion del stream
     let arr2 = [1, 2, 3, 4];    // <- este funciona bien
 
-    let obs2 = from(arr1)
+    let obs2 = from(arr2)
       .pipe(
         filter(x => {
           if (typeof x !== 'number')
@@ -341,54 +347,36 @@ export class RxjsTestComponent implements OnInit, OnDestroy {
 
     this.clickObs = new Subject();
 
-    this.subs.push(
-      this.clickObs.subscribe(v => console.log(v))
-    );
+    let sub = this.clickObs.subscribe(v => console.log(v));
+    this.subs.push(sub);
 
   }
 
   runExample14() {
 
-    this.subs.push(
-      fromEvent(document, 'mousemove').pipe(
-        sampleTime(500)
-      ).subscribe(e => console.log(`${(<any> e).screenX}, ${(<any> e).screenY}`))
-    );
+    let mouseEventObservable = fromEvent(document, 'mousemove');
+
+    // una forma, usando el operador sampleTime
+    let sub = mouseEventObservable.pipe(
+      sampleTime(500)
+    ).subscribe(e => console.log(`${(<any> e).screenX}, ${(<any> e).screenY}`));
+
+    // otra forma, usando el operador exhaustMap
+    // let sub = mouseEventObservable.pipe(
+    //   exhaustMap(e => of(e).pipe(
+    //     delay(500)
+    //   ))
+    // ).subscribe(e => console.log(`${(<any> e).screenX}, ${(<any> e).screenY}`));
+
+    this.subs.push(sub);
 
   }
 
   runExample15() {
 
-    // let requestCorto = of('respuesta 1').pipe(delay(100));
-    // let requestMediano = of('respuesta 2').pipe(delay(500));
-    // let requestLargo = of('respuesta 3').pipe(delay(5000));
-
-    let requestCorto = new Observable(observer => {
-      setTimeout(() => {
-        observer.next('respuesta 1');
-        observer.complete();
-      }, 100);
-    });
-
-    let requestMediano = new Observable(observer => {
-      setTimeout(() => {
-        observer.next('respuesta 2');
-        observer.complete();
-      }, 1000);
-    });
-
-    let requestLargo = new Observable(observer => {
-      setTimeout(() => {
-        observer.next('respuesta 3');
-        observer.complete();
-      }, 5000);
-    });
-
-    // of('sasasa').pipe(
-    //   concatMap( v => {
-    //     return of(v).pipe( delay(1) );
-    //   } )
-    // ).subscribe(v => console.log);
+    let requestCorto = of('respuesta 1').pipe(delay(100));
+    let requestMediano = of('respuesta 2').pipe(delay(1000));
+    let requestLargo = of('respuesta 3').pipe(delay(5000));
 
     forkJoin([
       requestCorto,
@@ -402,9 +390,43 @@ export class RxjsTestComponent implements OnInit, OnDestroy {
 
   }
 
+  runExample16() {
+
+    this.clickObs = new Subject();
+
+    let sub = this.clickObs.pipe(
+
+      exhaustMap(() => {
+        return new Observable(observer => {
+          this.sendRequest().subscribe(() => {
+            observer.next();
+            observer.complete();
+          });
+        });
+      })
+
+    ).subscribe();
+
+    this.subs.push(sub);
+
+  }
+
   emitClick() {
     if (this.clickObs)
       this.clickObs.next('clicked!');
+  }
+
+  // will simulate to send request, wait for response, then emit & complete.
+  sendRequest(): Observable<void> {
+    return new Observable(observer => {
+      console.log('sending request...');
+
+      setTimeout(() => {
+        console.log('response received.');
+        observer.next();
+        observer.complete();
+      }, 1000);
+    });
   }
 
 }
