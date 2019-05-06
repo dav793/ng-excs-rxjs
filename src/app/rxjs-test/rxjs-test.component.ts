@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component } from '@angular/core';
 import {
   Observable,
   from,
@@ -60,7 +60,7 @@ import {
   templateUrl: './rxjs-test.component.html',
   styleUrls: ['./rxjs-test.component.css']
 })
-export class RxjsTestComponent implements OnInit, OnDestroy {
+export class RxjsTestComponent {
 
   constructor() {
 
@@ -85,13 +85,6 @@ export class RxjsTestComponent implements OnInit, OnDestroy {
     // this.runConcatMap();
     // this.runSwitchMap();
     // this.runExhaustMap();
-
-  }
-
-  ngOnInit() {
-  }
-
-  ngOnDestroy() {
 
   }
 
