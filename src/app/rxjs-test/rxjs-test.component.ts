@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import {
   Observable,
+  Subject,
   from,
   interval,
   of,
@@ -62,6 +63,8 @@ import {
 })
 export class RxjsTestComponent {
 
+  destroy$ = new Subject();
+
   constructor() {
 
     // this.runEmpty();
@@ -84,7 +87,7 @@ export class RxjsTestComponent {
     // this.runMergeMap();
     // this.runConcatMap();
     // this.runSwitchMap();
-    // this.runExhaustMap();
+    this.runExhaustMap();
 
   }
 
@@ -99,7 +102,11 @@ export class RxjsTestComponent {
       () => console.log(`completes immediately`)
     );
 
-    of(1).subscribe(() => console.log(`emits immediately`));
+    // of(1, 2).subscribe(
+    //   (v) => console.log(`emits ${v} immediately`),
+    //   (e) => {},
+    //   () => console.log('completed after emitting')
+    // );
 
   }
 
@@ -224,19 +231,19 @@ export class RxjsTestComponent {
    */
   runMerge() {
 
-    let t1 = timer(1000).pipe(
+    let t1$ = timer(1000).pipe(
       map(() => 1)
     );
 
-    let t2 = timer(2000).pipe(
+    let t2$ = timer(2000).pipe(
       map(() => 2)
     );
 
-    let t3 = timer(3000).pipe(
+    let t3$ = timer(3000).pipe(
       map(() => 3)
     );
 
-    merge(t3, t2, t1)
+    merge(t3$, t2$, t1$)
       .subscribe(val => console.log(val));
 
   }
@@ -249,24 +256,24 @@ export class RxjsTestComponent {
    */
   runConcat() {
 
-    let i1 = merge(
+    let i1$ = merge(
       timer(1000).pipe( map(() => 1) ),
       timer(2000).pipe( map(() => 2) )
     );
 
-    let i2 = merge(
+    let i2$ = merge(
       timer(500).pipe( map(() => 3) ),
       timer(1000).pipe( map(() => 4) ),
       timer(1500).pipe( map(() => 5) )
     );
 
-    concat(i1, i2)
+    concat(i1$, i2$)
       .subscribe(val => console.log(val));
 
   }
 
   /**
-   *  runDistinctUntilChanged produce un observable que emite los valores del observable original siempre que no sean iguales
+   *  distinctUntilChanged produce un observable que emite los valores del observable original siempre que no sean iguales
    *  al último valor emitido por el observable original.
    */
   runDistinctUntilChanged() {
@@ -361,15 +368,17 @@ export class RxjsTestComponent {
 
     from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).pipe(
 
-      // map(v => {
-      //   if (v === 5)
-      //     throw new Error('oops! 5 is not supported.');
-      //   return v;
-      // }),
+      map(v => {
+        if (v === 5)
+          throw new Error('oops! 5 is not supported.');
+        return v;
+      }),
 
       finalize(() => console.log(`observable stream ended`))
 
-    ).subscribe(val => console.log(val));
+    ).subscribe(
+      val => console.log(val)
+    );
 
   }
 
@@ -382,10 +391,10 @@ export class RxjsTestComponent {
 
     let original$ = from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-    let [$pares, $impares] = partition(original$, (val, idx) => val % 2 === 0);
+    let [pares$, impares$] = partition(original$, (val, idx) => val % 2 === 0);
 
-    $pares.subscribe(v => console.log(`par: ${v}`));
-    $impares.subscribe(v => console.log(`impar: ${v}`));
+    pares$.subscribe(v => console.log(`par: ${v}`));
+    impares$.subscribe(v => console.log(`impar: ${v}`));
 
   }
 
