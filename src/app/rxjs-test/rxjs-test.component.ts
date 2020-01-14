@@ -12,7 +12,7 @@ import {
   merge,
   concat,
   throwError,
-  partition
+  partition, EMPTY
 } from "rxjs";
 
 import {
@@ -87,7 +87,7 @@ export class RxjsTestComponent {
     // this.runMergeMap();
     // this.runConcatMap();
     // this.runSwitchMap();
-    this.runExhaustMap();
+    // this.runExhaustMap();
 
   }
 
@@ -95,6 +95,19 @@ export class RxjsTestComponent {
    *  empty crea un observable que completa inmediatamente.
    */
   runEmpty() {
+
+    // let obs = new Observable(observer => {
+    //   observer.next(1);
+    //   observer.next(2);
+    //   observer.next(3);
+    //   observer.complete();
+    // });
+    //
+    // obs.subscribe(
+    //   val => console.log(val),
+    //   e => console.error(e),
+    //   () => console.log('completo')
+    // );
 
     empty().subscribe(
       () => {},
